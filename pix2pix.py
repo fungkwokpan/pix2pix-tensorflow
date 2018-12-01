@@ -14,6 +14,15 @@ import math
 import time
 from tools.size import IMAGE_SIZE
 
+'''
+python pix2pix.py \
+  --mode train \
+  --output_dir ../../datasets/data/pix2pix-trained/self-portraits \
+  --max_epochs 200 \
+  --input_dir ../../datasets/data/pix2pix/self-portraits \
+  --which_direction BtoA
+'''
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--input_dir", help="path to folder containing images")
 parser.add_argument("--mode", required=True, choices=["train", "test", "export"])
@@ -340,20 +349,32 @@ def create_generator(generator_inputs, generator_outputs_channels):
             a.ngf * 4, # encoder_3: [batch, 128, 128, ngf] => [batch, 64, 64, ngf * 2]
             a.ngf * 8, # encoder_4: [batch, 64, 64, ngf * 2] => [batch, 32, 32, ngf * 4]
             a.ngf * 8, # encoder_5: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
-            a.ngf * 8, # encoder_6: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
-            a.ngf * 8, # encoder_7: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
-            a.ngf * 8, # encoder_8: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
+            a.ngf * 16, # encoder_6: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
+            a.ngf * 16, # encoder_7: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
+            a.ngf * 16, # encoder_8: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
             a.ngf * 16, # encoder_9: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
+            a.ngf * 32, # encoder_9: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
+        ]
+    elif IMAGE_SIZE == 512: # https://github.com/affinelayer/pix2pix-tensorflow/issues/56
+        layer_specs = [
+            a.ngf * 2,  # encoder_2: [batch, 256, 256, ngf] => [batch, 128, 128, ngf * 2]
+            a.ngf * 4,  # encoder_3: [batch, 128, 128, ngf] => [batch, 64, 64, ngf * 2]
+            a.ngf * 8,  # encoder_4: [batch, 64, 64, ngf * 2] => [batch, 32, 32, ngf * 4]
+            a.ngf * 8,  # encoder_5: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
+            a.ngf * 16,  # encoder_6: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
+            a.ngf * 16,  # encoder_7: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
+            a.ngf * 32,  # encoder_8: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
+            a.ngf * 32,  # encoder_9: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
         ]
     else:
         layer_specs = [
-            a.ngf * 2, # encoder_2: [batch, 128, 128, ngf] => [batch, 64, 64, ngf * 2]
-            a.ngf * 4, # encoder_3: [batch, 64, 64, ngf * 2] => [batch, 32, 32, ngf * 4]
-            a.ngf * 8, # encoder_4: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
-            a.ngf * 8, # encoder_5: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
-            a.ngf * 8, # encoder_6: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
-            a.ngf * 8, # encoder_7: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
-            a.ngf * 8, # encoder_8: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
+            a.ngf * 2,  # encoder_2: [batch, 128, 128, ngf] => [batch, 64, 64, ngf * 2]
+            a.ngf * 4,  # encoder_3: [batch, 64, 64, ngf * 2] => [batch, 32, 32, ngf * 4]
+            a.ngf * 8,  # encoder_4: [batch, 32, 32, ngf * 4] => [batch, 16, 16, ngf * 8]
+            a.ngf * 8,  # encoder_5: [batch, 16, 16, ngf * 8] => [batch, 8, 8, ngf * 8]
+            a.ngf * 8,  # encoder_6: [batch, 8, 8, ngf * 8] => [batch, 4, 4, ngf * 8]
+            a.ngf * 8,  # encoder_7: [batch, 4, 4, ngf * 8] => [batch, 2, 2, ngf * 8]
+            a.ngf * 8,  # encoder_8: [batch, 2, 2, ngf * 8] => [batch, 1, 1, ngf * 8]
         ]
 
     for out_channels in layer_specs:
@@ -366,6 +387,9 @@ def create_generator(generator_inputs, generator_outputs_channels):
 
     if IMAGE_SIZE == 1024:
         layer_specs = [
+            (a.ngf * 16, 0.5),  # decoder_9: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
+            (a.ngf * 16, 0.5),  # decoder_9: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
+            (a.ngf * 16, 0.5),  # decoder_9: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
             (a.ngf * 16, 0.5),   # decoder_9: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
             (a.ngf * 8, 0.5),   # decoder_8: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
             (a.ngf * 8, 0.5),   # decoder_7: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
@@ -374,6 +398,17 @@ def create_generator(generator_inputs, generator_outputs_channels):
             (a.ngf * 4, 0.0),   # decoder_4: [batch, 32, 32, ngf * 4 * 2] => [batch, 64, 64, ngf * 2 * 2]
             (a.ngf * 2, 0.0),   # decoder_3: [batch, 64, 64, ngf * 2 * 2] => [batch, 128, 128, ngf * 2]
             (a.ngf, 0.0),       # decoder_2: [batch, 128, 128, ngf * 2 * 2] => [batch, 512, 512, ngf * 2]
+        ]
+    elif IMAGE_SIZE == 512: # https://github.com/affinelayer/pix2pix-tensorflow/issues/56
+        layer_specs = [
+            (a.ngf * 32, 0.5),  # decoder_9: [batch, 1, 1, ngf * 8] => [batch, 2, 2, ngf * 8 * 2]
+            (a.ngf * 16, 0.5),  # decoder_8: [batch, 2, 2, ngf * 8 * 2] => [batch, 4, 4, ngf * 8 * 2]
+            (a.ngf * 16, 0.5),  # decoder_7: [batch, 4, 4, ngf * 8 * 2] => [batch, 8, 8, ngf * 8 * 2]
+            (a.ngf * 8, 0.5),  # decoder_6: [batch, 8, 8, ngf * 8 * 2] => [batch, 16, 16, ngf * 8 * 2]
+            (a.ngf * 8, 0.0),  # decoder_5: [batch, 16, 16, ngf * 8 * 2] => [batch, 32, 32, ngf * 4 * 2]
+            (a.ngf * 4, 0.0),  # decoder_4: [batch, 32, 32, ngf * 4 * 2] => [batch, 64, 64, ngf * 2 * 2]
+            (a.ngf * 2, 0.0),  # decoder_3: [batch, 64, 64, ngf * 2 * 2] => [batch, 128, 128, ngf * 2]
+            (a.ngf, 0.0),  # decoder_2: [batch, 128, 128, ngf * 2 * 2] => [batch, 512, 512, ngf * 2]
         ]
     else:
         layer_specs = [
